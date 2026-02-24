@@ -40,7 +40,7 @@ jobs:
           git add dist/
           # Only commit if there are changes
           if ! git diff --staged --quiet; then
-            git commit -m "build: bundle dist for ${GITHUB_REF_NAME}"
+            git commit -m "build: bundle dist for ${GITHUB_REF_NAME} [skip ci]"
           fi
           git push origin HEAD:${GITHUB_REF_NAME} --force-with-lease || true
 
@@ -62,12 +62,21 @@ jobs:
         with:
           script: |
             const tag = context.ref.replace('refs/tags/', '')
-            await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tag,
-              name: tag,
-              generate_release_notes: true,
-              draft: false,
-              prerelease: false,
-            })
+            try {
+              await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                name: tag,
+                generate_release_notes: true,
+                draft: false,
+                prerelease: false,
+              })
+              core.info(`Created release ${tag}`)
+            } catch (err) {
+              if (err.status === 422) {
+                core.info(`Release ${tag} already exists — skipping creation.`)
+              } else {
+                throw err
+              }
+            }
