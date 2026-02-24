@@ -29930,6 +29930,7 @@ function wrappy (fn, cb) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.buildIssueTitle = buildIssueTitle;
 exports.buildWorkflowLabel = buildWorkflowLabel;
+exports.buildBranchLabel = buildBranchLabel;
 exports.buildIssueBody = buildIssueBody;
 exports.buildCommentBody = buildCommentBody;
 const MAX_LABEL_LENGTH = 50;
@@ -29948,6 +29949,19 @@ function buildWorkflowLabel(ctx) {
     // Replace spaces and special chars that are invalid in label names
     const sanitized = raw.replace(/[^\w:.\-/]/g, '-').replace(/-+/g, '-');
     return sanitized.slice(0, MAX_LABEL_LENGTH);
+}
+/**
+ * Builds a branch-specific label.
+ * Strips the refs/heads/ or refs/tags/ prefix, sanitizes, and prefixes with "branch:".
+ * Format: branch:{name}, truncated to 50 chars.
+ */
+function buildBranchLabel(ctx) {
+    const branchName = ctx.ref
+        .replace(/^refs\/(heads|tags)\//, '')
+        .replace(/[^\w.\-/]/g, '-')
+        .replace(/-+/g, '-');
+    const raw = `branch:${branchName}`;
+    return raw.slice(0, MAX_LABEL_LENGTH);
 }
 /**
  * Builds the full issue body with a Markdown table, log snippet, and run URL.
@@ -30283,11 +30297,13 @@ async function run() {
         }
         // Step 3: Ensure all labels exist
         const workflowLabel = (0, format_1.buildWorkflowLabel)(ctx);
-        const allLabels = [...new Set([...inputs.labels, workflowLabel])];
+        const branchLabel = (0, format_1.buildBranchLabel)(ctx);
+        const allLabels = [...new Set([...inputs.labels, workflowLabel, branchLabel])];
         for (const label of inputs.labels) {
             await (0, github_1.ensureLabelExists)(octokit, issueOwner, issueRepo, label, 'e11d48', 'CI failure');
         }
         await (0, github_1.ensureLabelExists)(octokit, issueOwner, issueRepo, workflowLabel, 'f97316', `CI failures for ${ctx.workflow}/${ctx.jobName}`);
+        await (0, github_1.ensureLabelExists)(octokit, issueOwner, issueRepo, branchLabel, '0ea5e9', `CI failures on branch ${branchLabel.replace('branch:', '')}`);
         // Step 4: Check for an existing open issue (deduplication)
         const ciFailureLabel = inputs.labels[0] ?? 'ci-failure';
         const existingIssue = await (0, github_1.findExistingIssue)(octokit, issueOwner, issueRepo, ciFailureLabel, workflowLabel);

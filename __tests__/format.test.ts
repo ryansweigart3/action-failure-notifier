@@ -1,6 +1,7 @@
 import {
   buildIssueTitle,
   buildWorkflowLabel,
+  buildBranchLabel,
   buildIssueBody,
   buildCommentBody,
 } from '../src/format'
@@ -53,6 +54,41 @@ describe('buildWorkflowLabel', () => {
 
   it('produces consistent labels for the same context', () => {
     expect(buildWorkflowLabel(baseCtx)).toBe(buildWorkflowLabel(baseCtx))
+  })
+})
+
+describe('buildBranchLabel', () => {
+  it('strips refs/heads/ prefix', () => {
+    expect(buildBranchLabel(baseCtx)).toBe('branch:main')
+  })
+
+  it('strips refs/tags/ prefix', () => {
+    const ctx = { ...baseCtx, ref: 'refs/tags/v1.0.0' }
+    expect(buildBranchLabel(ctx)).toBe('branch:v1.0.0')
+  })
+
+  it('sanitizes slashes in branch names', () => {
+    const ctx = { ...baseCtx, ref: 'refs/heads/feature/my-feature' }
+    const label = buildBranchLabel(ctx)
+    expect(label).toBe('branch:feature/my-feature')
+  })
+
+  it('replaces invalid characters with dashes', () => {
+    const ctx = { ...baseCtx, ref: 'refs/heads/feat ure' }
+    const label = buildBranchLabel(ctx)
+    expect(label).not.toContain(' ')
+  })
+
+  it('truncates to 50 characters', () => {
+    const ctx = {
+      ...baseCtx,
+      ref: 'refs/heads/very-long-branch-name-that-exceeds-the-fifty-character-limit',
+    }
+    expect(buildBranchLabel(ctx).length).toBeLessThanOrEqual(50)
+  })
+
+  it('always starts with branch:', () => {
+    expect(buildBranchLabel(baseCtx)).toMatch(/^branch:/)
   })
 })
 

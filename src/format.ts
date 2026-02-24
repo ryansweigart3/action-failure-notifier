@@ -21,6 +21,20 @@ export function buildWorkflowLabel(ctx: FailureContext): string {
 }
 
 /**
+ * Builds a branch-specific label.
+ * Strips the refs/heads/ or refs/tags/ prefix, sanitizes, and prefixes with "branch:".
+ * Format: branch:{name}, truncated to 50 chars.
+ */
+export function buildBranchLabel(ctx: FailureContext): string {
+  const branchName = ctx.ref
+    .replace(/^refs\/(heads|tags)\//, '')
+    .replace(/[^\w.\-/]/g, '-')
+    .replace(/-+/g, '-')
+  const raw = `branch:${branchName}`
+  return raw.slice(0, MAX_LABEL_LENGTH)
+}
+
+/**
  * Builds the full issue body with a Markdown table, log snippet, and run URL.
  */
 export function buildIssueBody(ctx: FailureContext, logTail: string): string {

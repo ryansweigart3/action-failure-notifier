@@ -9,7 +9,13 @@ import {
   createIssue,
   addCommentToIssue,
 } from './github'
-import { buildIssueTitle, buildWorkflowLabel, buildIssueBody, buildCommentBody } from './format'
+import {
+  buildIssueTitle,
+  buildWorkflowLabel,
+  buildBranchLabel,
+  buildIssueBody,
+  buildCommentBody,
+} from './format'
 
 export function parseInputs(): ActionInputs {
   const githubToken = core.getInput('github-token', { required: true })
@@ -87,7 +93,8 @@ async function run(): Promise<void> {
 
     // Step 3: Ensure all labels exist
     const workflowLabel = buildWorkflowLabel(ctx)
-    const allLabels = [...new Set([...inputs.labels, workflowLabel])]
+    const branchLabel = buildBranchLabel(ctx)
+    const allLabels = [...new Set([...inputs.labels, workflowLabel, branchLabel])]
 
     for (const label of inputs.labels) {
       await ensureLabelExists(octokit, issueOwner, issueRepo, label, 'e11d48', 'CI failure')
@@ -99,6 +106,14 @@ async function run(): Promise<void> {
       workflowLabel,
       'f97316',
       `CI failures for ${ctx.workflow}/${ctx.jobName}`
+    )
+    await ensureLabelExists(
+      octokit,
+      issueOwner,
+      issueRepo,
+      branchLabel,
+      '0ea5e9',
+      `CI failures on branch ${branchLabel.replace('branch:', '')}`
     )
 
     // Step 4: Check for an existing open issue (deduplication)
