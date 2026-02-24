@@ -1,0 +1,34 @@
+name: Test Notifier
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  actions: read
+
+jobs:
+  intentional-failure:
+    name: Intentional Failure
+    runs-on: ubuntu-latest
+    steps:
+      - name: This step always fails
+        run: exit 1
+
+  notify-on-failure:
+    name: Notify on Failure
+    needs: intentional-failure
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - uses: ryansweigart3/action-failure-notifier@v1
+        id: notifier
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          max-log-lines: '50'
+
+      - name: Print notifier outputs
+        run: |
+          echo "Action taken : ${{ steps.notifier.outputs.action-taken }}"
+          echo "Issue number : ${{ steps.notifier.outputs.issue-number }}"
+          echo "Issue URL    : ${{ steps.notifier.outputs.issue-url }}"
