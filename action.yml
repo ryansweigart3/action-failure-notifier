@@ -1,0 +1,31 @@
+name: 'Action Failure Notifier'
+description: 'Creates a GitHub issue (or adds a comment) when a workflow job fails'
+branding:
+  icon: 'alert-triangle'
+  color: 'red'
+inputs:
+  github-token:
+    description: 'GitHub token with issues:write and actions:read permissions'
+    required: true
+  issue-repo:
+    description: 'Target repo for issues in owner/repo format. Defaults to current repo.'
+    required: false
+    default: ''
+  max-log-lines:
+    description: 'Maximum number of log lines to include in the issue body'
+    required: false
+    default: '50'
+  labels:
+    description: 'Comma-separated list of labels to apply to created issues'
+    required: false
+    default: 'ci-failure'
+outputs:
+  issue-number:
+    description: 'The number of the issue created or commented on'
+  issue-url:
+    description: 'The URL of the issue created or commented on'
+  action-taken:
+    description: 'Either "created" (new issue) or "comment" (added to existing issue)'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
